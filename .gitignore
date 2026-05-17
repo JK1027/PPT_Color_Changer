@@ -1,0 +1,15 @@
+# Python Virtual Environment
+venv/
+.venv/
+
+# PyInstaller build files
+build/
+dist/
+*.spec
+
+# Python compilation files
+__pycache__/
+*.pyc
+
+# Local log files
+app.log
