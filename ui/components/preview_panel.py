@@ -69,6 +69,45 @@ class PreviewPanel(ctk.CTkFrame):
         )
         self.preview_new.pack(side="left", padx=(10, 25))
         
+        # 퀵 추천 색상 팔레트 프레임 (v4.2 제안 2번 구현)
+        self.frame_quick_palette = ctk.CTkFrame(self, fg_color="transparent")
+        self.frame_quick_palette.pack(pady=(5, 10))
+        
+        self.lbl_quick = ctk.CTkLabel(
+            self.frame_quick_palette, 
+            text="⚡ 빠른 강조색 지정:", 
+            font=("Malgun Gothic", 11, "bold"), 
+            text_color="#888888"
+        )
+        self.lbl_quick.pack(side="left", padx=(0, 10))
+        
+        # 이름, 정밀 Hex, 마우스 호버 Hex
+        self.quick_colors = [
+            ("빨강", "E74C3C", "C0392B"),
+            ("노랑", "F1C40F", "D4AC0D"),
+            ("초록", "2ECC71", "27AE60"),
+            ("하늘", "00A8FF", "0088CC"),
+            ("보라", "9B59B6", "8E44AD")
+        ]
+        
+        self.quick_buttons = []
+        for name, hex_val, hover_val in self.quick_colors:
+            btn = ctk.CTkButton(
+                self.frame_quick_palette,
+                text=name,
+                width=65,
+                height=25,
+                corner_radius=12,
+                fg_color=f"#{hex_val}",
+                text_color=get_readable_text_color(hex_val),
+                hover_color=f"#{hover_val}",
+                font=("Malgun Gothic", 10, "bold"),
+                state="disabled",
+                command=lambda h=hex_val: self.controller.select_new_color(h)
+            )
+            btn.pack(side="left", padx=4)
+            self.quick_buttons.append(btn)
+            
         # 실시간 변경 카운팅 라벨
         self.lbl_live_counts = ctk.CTkLabel(
             self, 
@@ -89,8 +128,10 @@ class PreviewPanel(ctk.CTkFrame):
             fg_color=bg_color,
             text_color=text_color
         )
-        # Picker 버튼 활성화
+        # Picker 및 퀵 팔레트 버튼 활성화
         self.btn_new_color.configure(state="normal", fg_color="#00a8ff", hover_color="#0088cc", text_color="white")
+        for btn in self.quick_buttons:
+            btn.configure(state="normal")
         
     def update_new_color_display(self, hex_color: str) -> None:
         """선택된 신규 치환 RGB 칩 및 텍스트 동기화"""
@@ -120,10 +161,17 @@ class PreviewPanel(ctk.CTkFrame):
         self.preview_new.configure(text="선택안됨", fg_color="#2c2c2c", text_color="#888")
         self.lbl_live_counts.configure(text="색상을 선택하면 변경 예정 개수를 분석합니다.", text_color="#00a8ff")
         self.btn_new_color.configure(state="disabled", fg_color="#333", text_color="#888")
+        for btn in self.quick_buttons:
+            btn.configure(state="disabled")
         
     def set_state(self, is_running: bool) -> None:
-        """실행 시 picker 제어 잠금"""
+        """실행 시 picker 및 퀵 팔레트 제어 잠금"""
         if is_running:
             self.btn_new_color.configure(state="disabled")
+            for btn in self.quick_buttons:
+                btn.configure(state="disabled")
         else:
-            self.btn_new_color.configure(state="normal" if self.controller.selected_target_color else "disabled")
+            state_val = "normal" if self.controller.selected_target_color else "disabled"
+            self.btn_new_color.configure(state=state_val)
+            for btn in self.quick_buttons:
+                btn.configure(state=state_val)

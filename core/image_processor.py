@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import logging
-from typing import Tuple
+from typing import Tuple, List, Set
 
 # 로거 설정
 logger = logging.getLogger("ppt_color_changer")
@@ -119,3 +119,63 @@ def process_image_blob(image_blob: bytes, target_hex: str, new_hex: str, toleran
         logger.error(f"Error transforming image colors: {e}", exc_info=True)
         
     return image_blob # 예외 발생 시 안전하게 원본 반환
+
+def extract_dominant_colors_from_image(image_blob: bytes, max_colors: int = 5) -> Set[str]:
+    """
+    이미지 내에서 핵심 강조색(유채색)들을 추출하여 Hex 문자열 집합으로 반환합니다.
+    검은색(어두움), 흰색(배경), 회색(무채색) 노이즈를 HSV 필터링으로 차단하고,
+    유사한 강조색들을 비닝(binning)을 통해 그룹화하여 정교하게 대표색을 추출합니다.
+    """
+    try:
+        # 1. Byte 배열을 BGR 이미지로 디코딩
+        nparr = np.frombuffer(image_blob, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return set()
+            
+        # 2. 스캔 성능 극대화를 위한 다운사이징 (100x100) 및 HSV 변환
+        img_small = cv2.resize(img, (100, 100))
+        hsv = cv2.cvtColor(img_small, cv2.COLOR_BGR2HSV)
+        
+        # 3. 선명한 유채색만 남기는 마스크 생성 (무채색 노이즈 완벽 차단)
+        # S >= 40 (흰색 배경 및 회색선 차단) 및 V >= 40 (어두운 검은색 영역 차단)
+        mask = (hsv[:, :, 1] >= 40) & (hsv[:, :, 2] >= 40)
+        
+        vibrant_pixels_bgr = img_small[mask]
+        if len(vibrant_pixels_bgr) == 0:
+            return set()
+            
+        # 4. RGB 공간에서 32 크기 단위로 픽셀을 그룹화(Binning)하여 색상 군집 형성
+        bin_to_pixels = {}
+        for pixel in vibrant_pixels_bgr:
+            b, g, r = pixel
+            # 32 크기 빈으로 나누기 (채널당 8개 빈 생성)
+            bin_key = (r // 32, g // 32, b // 32)
+            if bin_key not in bin_to_pixels:
+                bin_to_pixels[bin_key] = []
+            bin_to_pixels[bin_key].append(pixel)
+            
+        # 5. 빈의 크기(픽셀 수) 기준으로 정렬
+        sorted_bins = sorted(bin_to_pixels.items(), key=lambda x: len(x[1]), reverse=True)
+        
+        # 노이즈 색상을 방지하기 위해 최소 픽셀 수 제한 (전체 유채색 픽셀의 1% 또는 최소 10개 이상)
+        min_pixels = max(10, int(len(vibrant_pixels_bgr) * 0.01))
+        
+        result_colors = set()
+        for bin_key, pixels in sorted_bins:
+            if len(pixels) < min_pixels:
+                continue
+            if len(result_colors) >= max_colors:
+                break
+                
+            # 해당 빈에 속하는 픽셀들의 평균 RGB 구하기 (원색 보존)
+            avg_pixel = np.mean(pixels, axis=0).astype(np.uint8)
+            b, g, r = avg_pixel
+            hex_str = f"{r:02X}{g:02X}{b:02X}"
+            result_colors.add(hex_str)
+            
+        return result_colors
+    except Exception as e:
+        logger.error(f"Error extracting dominant colors from image: {e}", exc_info=True)
+        return set()
+

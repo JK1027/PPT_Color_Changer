@@ -1,12 +1,12 @@
 # PPT Color Changer 현재 구현 현황 및 상태 정의서 (CURRENT_STATUS)
-## 안정적인 프로덕션 수준의 구현 현황 • 버전 v4.0
+## 안정적인 프로덕션 수준의 구현 현황 • 버전 v4.2
 
 본 문서는 현재 시스템의 활성화된 기능, 테스트 통과 유무 및 향후 로드맵의 진행 상태를 기록합니다.
 
 ---
 
 ## 1. 현재 시스템 릴리즈 정보
-- **활성 버전**: v4.0 (Premium Modular Edition)
+- **활성 버전**: v4.2 (Premium Responsive UX Edition)
 - **최종 빌드 바이너리**: `dist/main.exe` (무설치 standalone 단일 실행파일)
 - **런타임 의존성 최적화**:
   - `opencv-python` -> `opencv-python-headless` 교체 완료 (GUI DLL 충돌 및 EXE 용량 대폭 경량화)
@@ -52,9 +52,12 @@
 ---
 
 ## 4. 향후 로드맵 및 백로그
-- [ ] **[우선순위: 높음] 이미지 내 핵심 강조색 추출 및 칩 자동 등록 기능 (v4.1 예정)**
-  - `core/image_processor.py`에 HSV 마스크(배경 백색/흑색/회색 노이즈 필터링) 및 Dominant Color 추출 기능 탑재 예정.
-  - `core/ppt_scanner.py`에서 `MSO_SHAPE_TYPE.PICTURE` 재귀 탐색 시 이미지 바이너리를 추출하여 연동 예정.
+- [x] **[완료] 이미지 내 핵심 강조색 추출 및 칩 자동 등록 기능 (v4.1)**
+  - `core/image_processor.py`에 HSV 마스크(배경 백색/흑색/회색 노이즈 필터링) 및 Dominant Color 추출 기능 구현 완료.
+  - `core/ppt_scanner.py`에서 `MSO_SHAPE_TYPE.PICTURE` 재귀 탐색 시 이미지 바이너리를 추출하여 연동 및 스캐닝 시 색상 칩 목록 자동 탑재 완료.
+- [x] **[완료] 추천 강조색 퀵 팔레트 및 유사도 실시간 디바운스 카운팅 (v4.2)**
+  - `ui/components/preview_panel.py`에 가장 자주 쓰이는 빨강, 노랑, 초록, 하늘, 보라 5대 대표 강조색 단축 지정 퀵 팔레트 신설 완료.
+  - `ui/app_ui.py`에 Tkinter 내장 `after` 타이머를 이용한 150ms 디바운스(Debounce) 메커니즘을 적용하여 유사도 슬라이더 드래그 시 부드러운 실시간 개수 감지 지원 완료.
 - [ ] 다중 색상 동시 선택 및 일괄 매핑 치환 기능(Batch Processing) 지원 검토
 - [ ] 슬라이드 마스터 및 SmartArt 지원 안전 영역 검토
 - [ ] 색상 매핑 설정 파일(Config.json) 저장 및 불러오기 기능 추가 검토

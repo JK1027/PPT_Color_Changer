@@ -3,7 +3,7 @@ from typing import Set, Dict, Tuple
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from core.color_extractor import get_run_color
-from core.image_processor import image_contains_color
+from core.image_processor import image_contains_color, extract_dominant_colors_from_image
 
 logger = logging.getLogger("ppt_color_changer")
 
@@ -47,6 +47,16 @@ def _extract_colors_from_shape(shape, colors: Set[str]) -> None:
                             c = get_run_color(run)
                             if c:
                                 colors.add(c)
+
+    # 4. 이미지인 경우 대표 유채색 추출
+    elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+        try:
+            image_blob = shape.image.blob
+            img_colors = extract_dominant_colors_from_image(image_blob)
+            for c in img_colors:
+                colors.add(c)
+        except Exception as e:
+            logger.error(f"Error extracting dominant colors from shape: {e}")
 
 def count_target_color_occurrences(
     ppt_path: str, 

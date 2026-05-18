@@ -30,6 +30,9 @@ class PPTColorChangerApp(ctk.CTk):
         # 컨트롤러 초기화 (View 인스턴스 위임)
         self.controller = PPTColorChangerController(self)
         
+        # 슬라이더 디바운스 타이머 ID (v4.2 제안 4번 구현)
+        self._slider_debounce_id = None
+        
         # 컴포넌트 레이아웃 구성
         self._build_ui()
         
@@ -179,8 +182,24 @@ class PPTColorChangerApp(ctk.CTk):
 
     def on_slider_move(self, val) -> None:
         self.options_panel.update_tolerance_label(int(val))
+        
+        # 이전 타이머 취소 (디바운스)
+        if self._slider_debounce_id:
+            self.after_cancel(self._slider_debounce_id)
+            
+        # 150ms 후 스캔 트리거 예약
+        self._slider_debounce_id = self.after(150, self._debounced_slider_trigger)
 
     def on_slider_released(self, event) -> None:
+        # 마우스 해제 시 pending 타이머가 있으면 취소 후 즉시 실행
+        if self._slider_debounce_id:
+            self.after_cancel(self._slider_debounce_id)
+            self._slider_debounce_id = None
+        self._debounced_slider_trigger()
+
+    def _debounced_slider_trigger(self) -> None:
+        """디바운스된 실제 슬라이더 변경 감지 및 개수 카운팅"""
+        self._slider_debounce_id = None
         if self.controller.selected_target_color:
             change_text = self.options_panel.get_change_text()
             change_image = self.options_panel.get_change_image()
